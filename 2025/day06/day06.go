@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-	"slices"
 	"strconv"
 	"strings"
 )
@@ -16,6 +15,9 @@ func main() {
 
 //go:embed input.txt
 var input string
+
+// regex to detect blocks of text divided by an arbitrary length of whitespaces
+var whiteSpaceRegex = regexp.MustCompile(`\s+`)
 
 func day06Part1() {
 	matrix, operators := parseMatrix(input)
@@ -44,7 +46,6 @@ func day06Part1() {
 func parseMatrix(input string) (matrix [][]int, operators []string) {
 	rows := strings.Split(input, "\n")
 	matrix = make([][]int, len(rows)-1)
-	whiteSpaceRegex := regexp.MustCompile(`\s+`)
 	for i := 0; i < len(rows)-1; i++ {
 		// replace multiple whitespaces to a single whitespace
 		trimmedRow := whiteSpaceRegex.ReplaceAllString(strings.TrimSpace(rows[i]), " ")
@@ -67,22 +68,46 @@ func parseMatrix(input string) (matrix [][]int, operators []string) {
 }
 
 func day06Part2() {
+	rows := strings.Split(input, "\n")
+	operators := strings.Split(whiteSpaceRegex.ReplaceAllString(strings.TrimSpace(rows[len(rows)-1]), " "), " ")
 
-}
+	sum := 0
 
-// digits extracts all digits of a number
-func digits(n int) []int {
-	if n < 0 {
-		n = -n
+	line := 0
+	for col := 0; col < len(operators); col++ {
+		var nums []int
+		hasNextNumber := true
+		for hasNextNumber {
+			num := 0
+			for row := 0; row < len(rows)-1; row++ {
+				if line < len(rows[row]) && rows[row][line] != ' ' {
+					// append digit to the end of the number
+					num *= 10
+					num += int(rows[row][line] - '0')
+				}
+			}
+			line++
+			if num > 0 {
+				nums = append(nums, num)
+			} else {
+				hasNextNumber = false
+			}
+		}
+		fmt.Printf("%d numbers: %v op: %s\n", col, nums, operators[col])
+
+		// calculate parsed numbers according to the given math operator
+		result := nums[0]
+		for i := 1; i < len(nums); i++ {
+			switch operators[col] {
+			case "+":
+				result += nums[i]
+			case "*":
+				result *= nums[i]
+			default:
+				log.Fatalf("unknown operator %s", operators[col])
+			}
+		}
+		sum += result
 	}
-	if n == 0 {
-		return []int{0}
-	}
-	var res []int
-	for n > 0 {
-		res = append(res, n%10)
-		n /= 10
-	}
-	slices.Reverse(res)
-	return res
+	fmt.Printf("final sum: %d\n", sum)
 }
